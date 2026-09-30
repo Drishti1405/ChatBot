@@ -14,6 +14,10 @@
 // ========================================================
 // 1. STATE & CONFIGURATION
 // ========================================================
+const BACKEND_API_URL = (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+  ? "/api/chat"
+  : "https://chatbot-backend-drishti1405s-projects.vercel.app/api/chat";
+
 const APP_STATE = {
   theme: localStorage.getItem("nova_theme") || "dark",
   soundEnabled: localStorage.getItem("nova_sound") !== "false",
@@ -733,7 +737,7 @@ async function generateAIResponse(userPrompt) {
     // If direct fetch was blocked by browser privacy/CORS, use server /api/chat proxy
     if (!botReply) {
       try {
-        const proxyRes = await fetch("/api/chat", {
+        const proxyRes = await fetch(BACKEND_API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ messages })
