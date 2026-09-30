@@ -91,4 +91,3 @@ Nova AI — Multimodal Conversational Copilot & Document Intelligence System
 - Designed an aesthetic glassmorphic UI architecture supporting dual layout modes (Full Studio Workspace vs Floating Widget), Web Audio API sound synthesizers, and Web Speech API voice dictation.
 - Integrated Marked.js and Highlight.js for real-time Markdown and syntax-highlighted code execution with copy feedback, token tracking, and persona cognitive pipelines.
 ```
-# ChatBot
