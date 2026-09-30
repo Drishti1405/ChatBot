@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
+  <meta name="description" content="Nova AI — Resume-worthy Intelligent Conversational Copilot powered by Google Gemini, PDF Document Intelligence, Code Highlighting, and Voice Interaction." />
+  <title>Nova AI — Intelligent Copilot & Neural Assistant</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+
+  <!-- Highlight.js for Code Highlighting -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/styles/atom-one-dark.min.css">
+  <script src="https://cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.9.0/build/highlight.min.js"></script>
+
+  <!-- Marked.js for Markdown Rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- PDF.js for Document Parsing -->
+  <script src="https://unpkg.com/pdfjs-dist@3.4.120/build/pdf.min.js"></script>
+
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- Emoji Picker Module -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/emoji-picker-element@^1/index.js"></script>
+
+  <!-- Critical Preload & Modal Guard Styles (Prevents FOUC) -->
+  <style>
+    body { margin: 0; background: #080b12; color: #f8fafc; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .modal-backdrop, #settings-modal { display: none; }
+    .modal-backdrop.open, #settings-modal.open { display: flex; }
+    .preloader-overlay { position: fixed; inset: 0; background: #060911; z-index: 99999; display: flex; align-items: center; justify-content: center; }
+    .preloader-overlay.preloader-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .file-preview-bar, .voice-status-bar { display: none; }
+    .reloader-sweep { display: none; }
+    .reloader-sweep.active { display: flex; }
+  </style>
+
+  <!-- Application Stylesheet (with Cache Buster) -->
+  <link rel="stylesheet" href="style.css?v=2.5.4" />
+</head>
+<body class="show-chatbot studio-mode">
+
+  <!-- ======================================================== -->
+  <!-- 1. AESTHETIC INITIAL PRELOADER ("NEURAL LOADER")        -->
+  <!-- ======================================================== -->
+  <div id="app-preloader" class="preloader-overlay">
+    <div class="preloader-content">
+      <div class="neural-orb-wrapper">
+        <div class="neural-ring ring-outer"></div>
+        <div class="neural-ring ring-middle"></div>
+        <div class="neural-ring ring-inner"></div>
+        <div class="neural-core">
+          <span class="material-symbols-rounded">auto_awesome</span>
+        </div>
+      </div>
+      <div class="preloader-brand">
+        <h2>NOVA<span class="gradient-text">.AI</span></h2>
+        <div class="preloader-status" id="preloader-status-text">Initializing Neural Engine...</div>
+      </div>
+      <div class="preloader-progress-track">
+        <div class="preloader-progress-bar" id="preloader-progress-bar"></div>
+      </div>
+      <div class="preloader-footer">Gemini 2.0 • Multimodal • PDF Intelligence</div>
+    </div>
+  </div>
+
+  <!-- Background Ambient Aurora -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
+  <!-- ======================================================== -->
+  <!-- 2. MAIN APPLICATION CONTAINER                           -->
+  <!-- ======================================================== -->
+  <div class="app-layout" id="app-layout">
+    
+    <!-- CHATBOT WINDOW / STUDIO -->
+    <div class="chatbot-popup" id="chatbot-popup">
+      
+      <!-- AESTHETIC RELOADER SWEEP EFFECT OVERLAY -->
+      <div class="reloader-sweep" id="reloader-sweep">
+        <div class="sweep-glow"></div>
+        <div class="sweep-badge">
+          <span class="material-symbols-rounded spin-icon">sync</span>
+          <span>Refreshing Session Context...</span>
+        </div>
+      </div>
+
+      <!-- HEADER BAR -->
+      <header class="chat-header">
+        <div class="header-left">
+          <div class="bot-avatar-badge">
+            <span class="material-symbols-rounded">neurology</span>
+            <span class="live-dot" title="System Online"></span>
+          </div>
+          <div class="header-titles">
+            <div class="brand-row">
+              <h1 class="logo-title">Nova <span class="gradient-accent">AI</span></h1>
+            </div>
+            <div class="persona-selector-wrapper">
+              <label for="persona-select" class="visually-hidden">Persona</label>
+              <select id="persona-select" class="persona-select" title="Switch AI Persona">
+                <option value="assistant">⚡ General Copilot</option>
+                <option value="architect">💻 Full-Stack Architect</option>
+                <option value="resume">📄 Resume & Career Coach</option>
+                <option value="research">🔍 Research & PDF Analyst</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACTION TOOLBAR -->
+        <div class="header-actions">
+          <!-- Aesthetic Reloader Button -->
+          <button type="button" id="reloader-btn" class="icon-btn tooltip-btn" data-tooltip="Reload Session & Context" aria-label="Reload Chat Session">
+            <span class="material-symbols-rounded">sync</span>
+          </button>
+
+          <!-- Sound FX Toggle -->
+          <button type="button" id="sound-toggle-btn" class="icon-btn tooltip-btn active" data-tooltip="Toggle Audio Effects" aria-label="Toggle Sound Effects">
+            <span class="material-symbols-rounded" id="sound-icon">volume_up</span>
+          </button>
+
+          <!-- Export Conversation -->
+          <button type="button" id="export-chat-btn" class="icon-btn tooltip-btn" data-tooltip="Export Chat (Markdown)" aria-label="Export Conversation">
+            <span class="material-symbols-rounded">download</span>
+          </button>
+
+          <!-- Layout Mode Switcher (Widget vs Studio) -->
+          <button type="button" id="view-mode-btn" class="icon-btn tooltip-btn" data-tooltip="Switch Widget / Fullscreen" aria-label="Toggle Fullscreen View">
+            <span class="material-symbols-rounded" id="view-mode-icon">fullscreen_exit</span>
+          </button>
+
+          <!-- Settings (API Key & Model) -->
+          <button type="button" id="settings-btn" class="icon-btn tooltip-btn" data-tooltip="Settings & API Key" aria-label="Settings">
+            <span class="material-symbols-rounded">tune</span>
+          </button>
+
+          <!-- Theme Toggle -->
+          <button type="button" id="theme-toggle-btn" class="icon-btn tooltip-btn" data-tooltip="Toggle Dark/Light Mode" aria-label="Toggle Theme">
+            <span class="material-symbols-rounded" id="theme-icon">light_mode</span>
+          </button>
+
+          <!-- Close / Minimize (Widget mode) -->
+          <button type="button" id="close-chatbot" class="icon-btn tooltip-btn" data-tooltip="Minimize" aria-label="Close Chatbot">
+            <span class="material-symbols-rounded">close</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- CHAT MESSAGE BODY -->
+      <main class="chat-body" id="chat-body">
+        
+        <!-- Welcome Hero Banner (Visible on fresh session) -->
+        <div class="welcome-card" id="welcome-card">
+          <div class="welcome-icon-glow">
+            <span class="material-symbols-rounded">psychology</span>
+          </div>
+          <h2>Welcome to <span class="gradient-text">Nova AI</span></h2>
+          <p class="welcome-desc">
+            Your high-performance AI Copilot for coding, document synthesis, career guidance, and creative problem solving.
+          </p>
+
+          <!-- Suggested Starter Prompts -->
+          <div class="starter-chips-container">
+            <div class="chips-title">Suggested Quick Starts:</div>
+            <div class="chips-grid">
+              <button type="button" class="starter-chip" data-prompt="Analyze and critique my resume bullet points for a Senior Software Engineer position.">
+                <span class="chip-icon">📄</span>
+                <span class="chip-text">Review Resume Bullets</span>
+              </button>
+              <button type="button" class="starter-chip" data-prompt="Design a scalable real-time microservices architecture with Redis, Kafka, and Node.js.">
+                <span class="chip-icon">💻</span>
+                <span class="chip-text">System Architecture Design</span>
+              </button>
+              <button type="button" class="starter-chip" data-prompt="Explain Transformers and Self-Attention mechanisms like I'm a software engineer.">
+                <span class="chip-icon">🧠</span>
+                <span class="chip-text">Explain Transformer Models</span>
+              </button>
+              <button type="button" class="starter-chip" data-prompt="Draft a polite and professional follow-up email after a job interview.">
+                <span class="chip-icon">✉️</span>
+                <span class="chip-text">Draft Professional Email</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </main>
+
+      <!-- DOCUMENT UPLOAD CHIP PREVIEW (PDF) -->
+      <div class="file-preview-bar" id="file-preview-bar">
+        <div class="preview-pill">
+          <span class="material-symbols-rounded doc-icon">description</span>
+          <div class="doc-info">
+            <span class="doc-name" id="doc-name-label">document.pdf</span>
+            <span class="doc-meta" id="doc-meta-label">PDF Extracted • 0 pages</span>
+          </div>
+          <button type="button" id="remove-file-btn" class="remove-doc-btn" title="Remove Document">
+            <span class="material-symbols-rounded">close</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- VOICE RECORDING WAVEFORM BAR -->
+      <div class="voice-status-bar" id="voice-status-bar">
+        <div class="voice-wave-container">
+          <span class="wave-bar"></span>
+          <span class="wave-bar"></span>
+          <span class="wave-bar"></span>
+          <span class="wave-bar"></span>
+          <span class="wave-bar"></span>
+        </div>
+        <span class="voice-text">Listening to your voice... Speak now</span>
+        <button type="button" id="cancel-voice-btn" class="cancel-voice-btn">Stop</button>
+      </div>
+
+      <!-- CHAT INPUT FOOTER -->
+      <footer class="chat-footer">
+        <form class="chat-form" id="chat-form">
+          
+          <!-- Emoji Button -->
+          <button type="button" id="emoji-btn" class="input-tool-btn tooltip-btn" data-tooltip="Insert Emoji" aria-label="Emoji Picker">
+            <span class="material-symbols-rounded">sentiment_satisfied</span>
+          </button>
+
+          <!-- PDF File Upload Button -->
+          <input type="file" id="file-input" accept=".pdf" hidden />
+          <button type="button" id="file-upload" class="input-tool-btn tooltip-btn" data-tooltip="Upload PDF Document" aria-label="Upload PDF">
+            <span class="material-symbols-rounded">attach_file</span>
+          </button>
+
+          <!-- Voice Input Button (Speech-to-Text) -->
+          <button type="button" id="voice-input-btn" class="input-tool-btn tooltip-btn" data-tooltip="Voice Dictation" aria-label="Voice Input">
+            <span class="material-symbols-rounded" id="mic-icon">mic</span>
+          </button>
+
+          <!-- Main Textarea Input -->
+          <div class="input-textarea-wrapper">
+            <textarea 
+              class="message-input" 
+              id="message-input" 
+              rows="1" 
+              placeholder="Ask Nova anything, upload a PDF, or use voice..."
+              aria-label="Chat input message"></textarea>
+          </div>
+
+          <!-- Submit Send Button -->
+          <button type="submit" id="send-btn" class="send-btn tooltip-btn" data-tooltip="Send (Enter)" aria-label="Send message">
+            <span class="material-symbols-rounded">arrow_upward</span>
+          </button>
+        </form>
+
+      </footer>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 3. FLOATING DOCKED TOGGLER (FOR WIDGET MODE)            -->
+  <!-- ======================================================== -->
+  <button id="chatbot-toggler" class="chatbot-toggler" aria-label="Toggle Chatbot">
+    <div class="toggler-pulse-ring"></div>
+    <span class="material-symbols-rounded open-icon">forum</span>
+    <span class="material-symbols-rounded close-icon">expand_more</span>
+    <span class="unread-badge" id="unread-badge">1</span>
+  </button>
+
+  <!-- ======================================================== -->
+  <!-- 4. EMOJI PICKER POPUP                                    -->
+  <!-- ======================================================== -->
+  <div class="emoji-picker-container" id="emoji-picker-container">
+    <emoji-picker class="dark"></emoji-picker>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 5. SETTINGS & API KEY MODAL                              -->
+  <!-- ======================================================== -->
+  <div class="modal-backdrop" id="settings-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-row">
+          <span class="material-symbols-rounded">settings</span>
+          <h3>Nova AI Configuration</h3>
+        </div>
+        <button type="button" class="icon-btn" id="close-modal-btn" aria-label="Close Settings">
+          <span class="material-symbols-rounded">close</span>
+        </button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="setting-group">
+          <label class="setting-label" for="api-mode-select">AI Engine</label>
+          <select id="api-mode-select" class="form-select">
+            <option value="live">Nova Live AI (Free Cloud Neural Engine — Zero setup required)</option>
+            <option value="gemini">Google Gemini API (Custom API Key)</option>
+          </select>
+          <p class="setting-hint">Nova Live AI is active by default and answers any question directly. You can also connect your own Google Gemini key if you prefer.</p>
+        </div>
+
+        <div class="setting-group" id="api-key-group" style="display: none;">
+          <label class="setting-label" for="custom-api-key">Google Gemini API Key</label>
+          <div class="input-password-wrapper">
+            <input type="password" id="custom-api-key" class="form-input" placeholder="AIzaSy..." />
+            <button type="button" id="toggle-key-visibility" class="toggle-eye-btn" aria-label="Toggle key visibility">
+              <span class="material-symbols-rounded" id="eye-icon">visibility</span>
+            </button>
+          </div>
+          <p class="setting-hint">Your API key is securely stored only in your local browser's <code>localStorage</code>.</p>
+        </div>
+
+        <div class="setting-group" id="model-group" style="display: none;">
+          <label class="setting-label" for="model-select">Gemini Model</label>
+          <select id="model-select" class="form-select">
+            <option value="gemini-1.5-flash">Gemini 1.5 Flash (Ultra-fast & Multimodal)</option>
+            <option value="gemini-2.0-flash">Gemini 2.0 Flash (Next-gen reasoning)</option>
+            <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep complex problem solving)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="cancel-settings-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="save-settings-btn">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- 6. TOAST NOTIFICATION SYSTEM                            -->
+  <!-- ======================================================== -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- APPLICATION LOGIC (with Cache Buster) -->
+  <script src="script.js?v=2.6.0"></script>
+</body>
+</html>
